@@ -1,0 +1,6 @@
+# FILE: test.py
+
+def hello():
+    print("Hello world")
+
+# Refactor this function for readability and efficiency.

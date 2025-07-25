@@ -1,0 +1,34 @@
+{
+    "background_setup": {
+        "description": "background_setup module functionality is not yet documented.",
+        "enabled": true
+    },
+    "capabilities_registry": {
+        "description": "capabilities_registry module functionality is not yet documented.",
+        "enabled": true
+    },
+    "code_chunker": {
+        "description": "code_chunker module functionality is not yet documented.",
+        "enabled": true
+    },
+    "evaluate_patch": {
+        "description": "evaluate_patch module functionality is not yet documented.",
+        "enabled": true
+    },
+    "intent_router": {
+        "description": "intent_router module functionality is not yet documented.",
+        "enabled": true
+    },
+    "llm": {
+        "description": "llm module functionality is not yet documented.",
+        "enabled": true
+    },
+    "root_registry": {
+        "description": "root_registry module functionality is not yet documented.",
+        "enabled": true
+    },
+    "self_patch": {
+        "description": "self_patch module functionality is not yet documented.",
+        "enabled": true
+    }
+}

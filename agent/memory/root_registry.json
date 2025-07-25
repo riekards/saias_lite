@@ -1,0 +1,53 @@
+{
+  "gui.py": "file",
+  "saias.ico": "file",
+  "__init__.py": "file",
+  "memory": {
+    "capabilities.json": "file",
+    "config.json": "file",
+    "rewards_log.json": "file",
+    "root_registry.json": "file",
+    "debug_code_dump": {
+      "background_setup.txt": "file",
+      "capabilities_registry.txt": "file",
+      "evaluate_patch.txt": "file",
+      "gui.txt": "file",
+      "intent_router.txt": "file",
+      "llm.txt": "file",
+      "root_registry.txt": "file",
+      "run.txt": "file",
+      "self_patch.txt": "file"
+    },
+    "patch_notes": {
+      "PATCH_2025-06-29_00-10-42_background_setup.json": "file",
+      "skipped_patches.log": "file"
+    }
+  },
+  "tools": {
+    "background_setup.py": "file",
+    "background_setup.py.bak": "file",
+    "capabilities_registry.py": "file",
+    "code_chunker.py": "file",
+    "evaluate_patch.py": "file",
+    "intent_router.py": "file",
+    "llm.py": "file",
+    "root_registry.py": "file",
+    "self_patch.py": "file",
+    "__pycache__": {
+      "background_setup.cpython-310.pyc": "file",
+      "background_setup.py": "file",
+      "background_setup.py.bak": "file",
+      "capabilities_registry.cpython-310.pyc": "file",
+      "evaluate_patch.cpython-310.pyc": "file",
+      "intent_router.cpython-310.pyc": "file",
+      "llm.cpython-310.pyc": "file",
+      "root_registry.cpython-310.pyc": "file",
+      "self_patch.cpython-310.pyc": "file"
+    }
+  },
+  "__pycache__": {
+    "core.cpython-310.pyc": "file",
+    "gui.cpython-310.pyc": "file",
+    "__init__.cpython-310.pyc": "file"
+  }
+}

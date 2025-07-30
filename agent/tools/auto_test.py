@@ -1,0 +1,15 @@
+import subprocess
+
+def run_patch_tests():
+    try:
+        # Replace this command with actual tests relevant to your environment
+        result = subprocess.run(['python', '-m', 'unittest', 'discover', '-s', 'tests'], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("Tests passed successfully.")
+            return True
+        else:
+            print("Tests failed:\n", result.stdout, result.stderr)
+            return False
+    except Exception as e:
+        print(f"Error running tests: {e}")
+        return False

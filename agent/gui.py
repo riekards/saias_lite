@@ -2,7 +2,8 @@ import sys
 import threading
 import json
 import os
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QTextEdit, QLineEdit, QWidget, QVBoxLayout
+import logging
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QAction, QTextEdit, QLineEdit, QWidget, QVBoxLayout, QPushButton, QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from pystray import Icon as SysTrayIcon, MenuItem as item
@@ -13,6 +14,10 @@ from agent.tools.intent_router import detect_intent
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "memory", "config.json")
 
+logging.basicConfig(filename='saiasgui_log.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+logging.info("Your clear log message here.")
 
 class AssistantGUI(QWidget):
 	def __init__(self):
@@ -32,6 +37,23 @@ class AssistantGUI(QWidget):
 		layout.addWidget(self.input_field)
 
 		self.setLayout(layout)
+	
+	def setup_patch_approval(self):
+		self.approve_patch_button = QPushButton("Approve Patches", self)
+		self.approve_patch_button.clicked.connect(self.approve_patches)
+		self.layout().addWidget(self.approve_patch_button)
+	
+	
+	def approve_patches(self):
+		# Placeholder for patch approval logic
+		reply = QMessageBox.question(self, 'Patch Approval',
+									'Approve all pending patches?',
+									QMessageBox.Yes | QMessageBox.No)
+		if reply == QMessageBox.Yes:
+			# Here call your patch approval logic
+			QMessageBox.information(self, 'Approved', 'Patches approved successfully!')
+		else:
+			QMessageBox.warning(self, 'Canceled', 'Patch approval canceled!')
 
 	def handle_input(self):
 		user_input = self.input_field.text().strip()

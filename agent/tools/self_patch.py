@@ -12,6 +12,8 @@ from agent.tools.llm import call_code_llm
 from agent.tools.llm import score_code_patch
 from agent.tools.llm import safe_code_llm
 from agent.tools.code_chunker import chunk_and_refactor_file, ChunkContext
+from agent.tools.backup import backup_file
+from agent.tools.auto_test import run_patch_tests
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = Path(__file__).resolve().parent
@@ -19,14 +21,27 @@ PATCH_DIR = ROOT_DIR / "memory" / "patch_notes"
 SKIPPED_LOG = PATCH_DIR / "skipped_patches.log"
 PATCH_DIR.mkdir(parents=True, exist_ok=True)
 
-logging.basicConfig(
-	level=logging.DEBUG,
-	format="%(asctime)s [%(levelname)s] %(message)s",
-	handlers=[
-		logging.FileHandler("self_patch_debug.log"),
-		logging.StreamHandler()
-	]
-)
+logging.basicConfig(filename='saiasselfpatch_log.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+logging.info("Your clear log message here.")
+
+def apply_patch(file_path, patch_content):
+	backup_file(file_path)  # First backup the original file
+	try:
+		with open(file_path, 'w') as file:
+			file.write(patch_content)
+		logging.info(f"Patch applied successfully to {file_path}")
+
+		if run_patch_tests():
+			logging.info("Patch successfully tested and verified.")
+		else:
+			raise Exception("Patch tests failed. Reverting changes.")
+	except Exception as e:
+		logging.error(e)
+		backup_path = os.path.join(ROOT_DIR, 'backups', os.path.basename(file_path))
+		shutil.copy(backup_path, file_path)
+		logging.info(f"Original file restored from backup ({backup_path}).")
 
 def get_all_python_files(base_dir="."):
 	ignore_dirs = {"venv", "__pycache__", "tests"}

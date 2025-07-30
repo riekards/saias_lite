@@ -1,7 +1,7 @@
 {
   "llm": {
     "chat_model": "mistral",
-    "code_model": "codellama:13b-code"
+    "code_model": "deepseek-coder:6.7b"
   },
 
   "chat": {
@@ -11,5 +11,9 @@
   "prompts": {
 	"rewrite_code": "You are an expert Python developer.\nWrite only valid, executable Python code.\nDo not include markdown formatting, comments, or explanations.\nYour task: ",
 	"aggressive_refactor": "You are an expert Python developer.\nYour job is to aggressively refactor the following Python code for quality, maintainability, readability, and performance.\nApply meaningful structural changes. Rename unclear variables. Split long functions. Reorganize logic where needed.\nOnly output valid executable Python code — no markdown, no comments, no explanation.\n\n"
-}
+},
+"auto_test_patches": true,
+"auto_backup_before_patch": true,
+"patch_approval_required": true,
+"logging_level": "DEBUG"
 }

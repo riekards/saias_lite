@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple, Set, Optional
 from pathlib import Path
 from dataclasses import dataclass
 from agent.tools.llm import safe_code_llm, score_code_patch
+from agent.tools.dependency_graph import DependencyGraph
 
 @dataclass
 class CodeChunk:
@@ -49,6 +50,16 @@ class CodeChunker:
 		
 		return chunks
 	
+		# Add global dependency context
+		graph = DependencyGraph()
+		graph.build()
+		rel_path = os.path.relpath(file_path, ROOT_PATH)
+		dependents = graph.get_dependents(rel_path)
+		if dependents:
+			context_warning = f"# WARNING: This file is imported by: {', '.join(dependents)}\n"
+			source_code = context_warning + source_code
+			lines = source_code.splitlines()
+
 	def _build_context(self, tree: ast.AST, lines: List[str]) -> ChunkContext:
 		"""Analyze the entire file to understand dependencies"""
 		imports = []
@@ -213,24 +224,23 @@ class CodeChunker:
 		"""Create a prompt with necessary context for the LLM"""
 		prompt_parts = []
 		
-		# Add relevant imports
-		if chunk.imports_needed:
-			prompt_parts.append("# Required imports:")
-			prompt_parts.extend(chunk.imports_needed)
+    # ✅ Always show top-level imports
+		if context.all_imports:
+			prompt_parts.append("# IMPORTANT: The following imports are already in the file:")
+			prompt_parts.extend([f"# {imp}" for imp in context.all_imports])
 			prompt_parts.append("")
-		
-		# Add dependency signatures if available
+
+    # Add dependency context
 		if chunk.dependencies:
 			prompt_parts.append("# Context - Referenced functions/classes:")
 			for dep in chunk.dependencies:
 				if dep in context.cross_references:
-					prompt_parts.append(f"# {dep} is defined elsewhere in this file")
+					prompt_parts.append(f"# {dep} is used in this file")
 			prompt_parts.append("")
-		
-		# Add the actual chunk
+
+    # Add the actual chunk
 		prompt_parts.append("# Code to refactor:")
 		prompt_parts.append(chunk.content)
-		
 		return '\n'.join(prompt_parts)
 	
 	def refactor_chunk(self, chunk: CodeChunk, context: ChunkContext) -> Optional[str]:
@@ -252,31 +262,38 @@ class CodeChunker:
 		return None
 	
 	def _validate_chunk_integrity(self, original_chunk: CodeChunk, refactored: str, context: ChunkContext) -> bool:
-		"""Validate that refactored chunk doesn't break dependencies"""
 		try:
-			# Parse refactored code
 			ast.parse(refactored)
-			
-			# Check that it still provides what it should
-			refactored_tree = ast.parse(refactored)
-			new_provides = set()
-			
-			for node in ast.walk(refactored_tree):
-				if isinstance(node, ast.FunctionDef):
-					new_provides.add(node.name)
-				elif isinstance(node, ast.ClassDef):
-					new_provides.add(node.name)
-			
-			# Ensure critical definitions are preserved
-			critical_provides = original_chunk.provides.intersection(context.all_functions.union(context.all_classes))
-			if not critical_provides.issubset(new_provides):
-				print(f"[VALIDATION] Missing critical definitions: {critical_provides - new_provides}")
-				return False
-			
-			return True
-			
 		except SyntaxError:
 			return False
+
+		# 🔒 Block new top-level imports not in original file
+		original_imports = {imp.split()[-1].split('.')[0] for imp in context.all_imports}
+		try:
+			refactored_tree = ast.parse(refactored)
+			for node in ast.walk(refactored_tree):
+				if isinstance(node, (ast.Import, ast.ImportFrom)):
+					module = getattr(node, 'module', '')
+					if module and module.split('.')[0] not in original_imports:
+						print(f"[BLOCK] Unauthorized import: {module}")
+						return False
+		except Exception:
+			return False
+
+		# ✅ Preserve public interface
+		new_provides = set()
+		for node in ast.walk(refactored_tree):
+			if isinstance(node, ast.FunctionDef):
+				new_provides.add(node.name)
+			elif isinstance(node, ast.ClassDef):
+				new_provides.add(node.name)
+
+		critical = original_chunk.provides.intersection(context.all_functions | context.all_classes)
+		if not critical.issubset(new_provides):
+			print(f"[BLOCK] Missing: {critical - new_provides}")
+			return False
+
+		return True
 	
 	def reassemble_chunks(self, chunks: List[Tuple[CodeChunk, str]], original_lines: List[str]) -> str:
 		"""Reassemble refactored chunks back into a complete file"""

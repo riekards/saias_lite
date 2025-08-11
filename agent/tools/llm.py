@@ -141,38 +141,89 @@ def safe_code_llm(prompt):
 		return None
 
 def is_valid_python_code(code: str) -> bool:
-	try:
-		ast.parse(code)
-		return True
-	except SyntaxError as e:
-		print(f"[SYNTAX ERROR] {e}")
-		return False
-	
+    try:
+        ast.parse(code)
+        return True
+    except SyntaxError as e:
+        print(f"[SYNTAX ERROR] {e}")
+        return False
+
+def is_meaningful_change(original: str, modified: str) -> bool:
+    """
+    Determine if two code strings are meaningfully different.
+    Returns False if only whitespace or comments changed.
+    """
+    if not original or not modified:
+        return False
+    if original.strip() == modified.strip():
+        return False
+
+    def normalize(code: str) -> str:
+        lines = []
+        for line in code.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                no_comment = stripped.split("#")[0].strip()
+                if no_comment:
+                    lines.append(no_comment)
+        return "\n".join(lines)
+
+    orig_norm = normalize(original)
+    mod_norm = normalize(modified)
+
+    return orig_norm != mod_norm
+
 def score_code_patch(refactored_code: str, original_code: str = "") -> int:
-	score = 0
-	lines = refactored_code.strip().splitlines()
+    """
+    Score a refactored code block (0–10).
+    Returns 0 if invalid, low if no change, higher if meaningful improvement.
+    """
+    if not refactored_code.strip():
+        return 0
 
-	if is_valid_python_code(refactored_code):
-		score += 4
-	if len(lines) > 5:
-		score += 3
-	if all(line.startswith("\t") or line.startswith("    ") or line.strip() == "" for line in lines):
-		score += 2
-	if any("def " in line or "class " in line for line in lines):
-		score += 1
+    # 1. Must be valid Python
+    try:
+        ast.parse(refactored_code)
+    except SyntaxError:
+        return 0
 
-	# New: diff score boost
-	if original_code:
-		diff = list(difflib.unified_diff(
-			original_code.strip().splitlines(),
-			refactored_code.strip().splitlines(),
-			n=0
-		))
-		if len(diff) > 4:
-			score += 2
-		if any("import " in line for line in diff):
-			score += 1
-	return score
+    # 2. Must be different from original
+    if original_code and not is_meaningful_change(original_code, refactored_code):
+        return 1  # Barely passes — no real change
+
+    # 3. Base score for valid, changed code
+    score = 4  # For validity
+    lines = refactored_code.strip().splitlines()
+
+    # 4. Non-trivial size
+    if len(lines) >= 3:
+        score += 2
+
+    # 5. Good formatting
+    if all(
+        line.strip() == "" or 
+        line.startswith("    ") or 
+        line.startswith("\t")
+        for line in lines
+    ):
+        score += 2
+
+    # 6. Contains functions/classes
+    if any("def " in line or "class " in line for line in lines):
+        score += 1
+
+    # 7. Bonus for actual change
+    if original_code:
+        diff = list(difflib.unified_diff(
+            original_code.strip().splitlines(),
+            refactored_code.strip().splitlines(),
+            lineterm=""
+        ))
+        change_count = len([l for l in diff if l.startswith(("+", "-")) and not l.startswith(("---", "+++"))])
+        if change_count > 1:
+            score += 1
+
+    return min(10, max(0, score))
 
 def log_patch_score(prompt: str, score: int, raw_code: str):
 	log_path = Path(__file__).resolve().parents[1] / "memory" / "rewards_log.json"

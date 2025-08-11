@@ -14,6 +14,7 @@ from agent.tools.llm import safe_code_llm
 from agent.tools.code_chunker import chunk_and_refactor_file, ChunkContext
 from agent.tools.backup import backup_file
 from agent.tools.auto_test import run_patch_tests
+from agent.tools.dependency_graph import DependencyGraph
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = Path(__file__).resolve().parent
@@ -69,11 +70,29 @@ def log_skipped_patch(filename: str, reason: str):
 		f.write(f"{datetime.now().isoformat()} - {filename}: {reason}\n")
 
 def is_meaningful_change(original: str, modified: str) -> bool:
-	diff = list(difflib.unified_diff(
-		original.strip().splitlines(),
-		modified.strip().splitlines()
-	))
-	return len(diff) > 0
+    """
+    Returns True only if there is a real, non-whitespace, non-comment change.
+    """
+    if not original or not modified:
+        return False
+
+    def normalize(code: str) -> str:
+        if not code:
+            return ""
+        lines = []
+        for line in code.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                # Remove inline comments
+                clean_line = stripped.split("#")[0].strip()
+                if clean_line:
+                    lines.append(clean_line)
+        return "\n".join(lines)
+
+    orig_norm = normalize(original)
+    mod_norm = normalize(modified)
+
+    return orig_norm != mod_norm
 
 def safe_import_test(file_path):
 	try:
@@ -100,91 +119,116 @@ def load_pending_patch_map():
 	return patch_map
 
 def run_self_patch():
-	patches_created = 0
-	pending_patch_map = load_pending_patch_map()
+    patches_created = 0
+    pending_patch_map = load_pending_patch_map()
 
-	for file_path in get_all_python_files():
-				# DEBUG: Save the raw code to a text file for inspection
-		debug_dump_dir = ROOT_DIR / "memory" / "debug_code_dump"
-		debug_dump_dir.mkdir(parents=True, exist_ok=True)
+    # Build debug dump dir once
+    debug_dump_dir = ROOT_DIR / "memory" / "debug_code_dump"
+    debug_dump_dir.mkdir(parents=True, exist_ok=True)
 
-		debug_file_path = debug_dump_dir / f"{Path(file_path).stem}.txt"
-		with open(file_path, "r", encoding="utf-8") as f:
-			original_code = f.read()
+    # ✅ Single loop — no redundancy
+    for file_path in get_all_python_files():
+        file_path = Path(file_path)  # Ensure it's a Path object
 
-		with open(debug_file_path, "w", encoding="utf-8") as debug_out:
-			debug_out.write(original_code)
+        # 1. Read original code once
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                original_code = f.read()
+                graph = DependencyGraph()
+                graph.build()
 
+                rel_path = os.path.relpath(file_path, ROOT_DIR)
+                dependents = graph.get_dependents(rel_path)
+                if dependents:
+                    print(f"[⚠️] {file_path} is used by: {', '.join(dependents)}")
+                    warning_comment = (
+                        f"# WARNING: This file is imported by:\n"
+                        f"# {', '.join([f'  - {d}' for d in dependents])}\n"
+                        f"# Do NOT change public function signatures or break compatibility.\n"
+                        f"# If you modify any exported functions, ensure backward compatibility.\n\n"
+                    )
+                    original_code = warning_comment + original_code
+        except Exception as e:
+            logging.error(f"Failed to read {file_path}: {e}")
+            continue
 
-	for file_path in get_all_python_files():
-		if pending_patch_map.get(file_path):
-			log_skipped_patch(file_path, "Already patched")
-			continue
+        # 2. Save debug dump (optional: only if needed)
+        debug_file_path = debug_dump_dir / f"{file_path.stem}.txt"
+        with open(debug_file_path, "w", encoding="utf-8") as debug_out:
+            debug_out.write(original_code)
 
-		with open(file_path, "r", encoding="utf-8") as f:
-			original_code = f.read()
+        # 3. Skip if already pending
+        if pending_patch_map.get(str(file_path)):
+            log_skipped_patch(str(file_path), "Already patched")
+            continue
 
-		refactored_code, chunk_metadata = chunk_and_refactor_file(file_path)
-		if not refactored_code:
-			print(f"[SKIP] LLM returned no code for {file_path}")
-			log_skipped_patch(str(file_path), "LLM returned empty or invalid code")
-			continue
+        # 4. Attempt refactoring
+        refactored_code, chunk_metadata = chunk_and_refactor_file(str(file_path))
+        if not refactored_code:
+            print(f"[SKIP] LLM returned no code for {file_path}")
+            log_skipped_patch(str(file_path), "LLM returned empty or invalid code")
+            continue
 
-		refactor_score = score_code_patch(refactored_code, original_code)
-		if refactor_score < 3:
-			print(f"[SKIP] Refactor score too low ({refactor_score}/10) for {file_path}")
-			log_skipped_patch(str(file_path), f"Refactor score too low ({refactor_score}/10)")
-			continue
+        # 5. Score the refactor
+        refactor_score = score_code_patch(refactored_code, original_code)
+        if refactor_score < 3:
+            print(f"[SKIP] Refactor score too low ({refactor_score}/10) for {file_path}")
+            log_skipped_patch(str(file_path), f"Refactor score too low ({refactor_score}/10)")
+            continue
 
-		print(f"[DEBUG] Refactoring: {file_path}")
-		
-		if not refactored_code or not is_meaningful_change(original_code, refactored_code):
-			print(f"[SKIP] No meaningful changes detected in {file_path}")
-			log_skipped_patch(str(file_path), "No meaningful change")
-			continue
+        # 6. Check for meaningful change
+        if not is_meaningful_change(original_code, refactored_code):
+            print(f"[SKIP] No meaningful changes detected in {file_path}")
+            log_skipped_patch(str(file_path), "No meaningful change")
+            continue
 
+        # 7. Test in sandbox
+        temp_path = f"{file_path}.temp"
+        with open(temp_path, "w", encoding="utf-8") as f:
+            f.write(refactored_code)
 
-		temp_path = f"{file_path}.temp"
-		with open(temp_path, "w", encoding="utf-8") as f:
-			f.write(refactored_code)
+        if "gui.py" in str(file_path) or "run.py" in str(file_path):
+            test_passed = safe_import_test(temp_path)
+        else:
+            test_passed = test_patch(temp_path)
 
-		if "gui.py" in file_path or "run.py" in file_path:
-			test_passed = safe_import_test(temp_path)
-		else:
-			test_passed = test_patch(temp_path)
+        # 8. Apply patch if test passed
+        if test_passed:
+            # Backup original
+            backup_path = f"{file_path}.bak"
+            with open(backup_path, "w", encoding="utf-8") as f:
+                f.write(original_code)
 
-		if test_passed:
-			with open(f"{file_path}.bak", "w", encoding="utf-8") as f:
-				f.write(original_code)
+            # Generate patch ID and info
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            patch_id = f"PATCH_{timestamp}_{file_path.stem}"
+            patch_info = {
+                "patch_id": patch_id,
+                "target_file": str(file_path),
+                "description": "Refactored for readability and maintainability.",
+                "refactor_score": refactor_score,
+                "timestamp": timestamp,
+                "applied": False,
+                "approved": False,
+                "original_code": original_code,
+                "refactored_code": refactored_code,
+                "chunks": chunk_metadata,
+            }
 
-			refactor_score = score_code_patch(refactored_code, original_code)
-			summary = {
-					"description": "Refactored for readability and maintainability.",
-					"refactor_score": refactor_score
-				}
+            # Save patch
+            patch_file = PATCH_DIR / f"{patch_id}.json"
+            with open(patch_file, "w", encoding="utf-8") as f:
+                json.dump(patch_info, f, indent=2)
 
-			timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-			patch_id = f"PATCH_{timestamp}_{Path(file_path).stem}"
-			patch_info = {
-				"patch_id": patch_id,
-				"target_file": file_path,
-				"description": summary["description"],
-				"refactor_score": summary["refactor_score"],
-				"timestamp": timestamp,
-				"applied": False,
-				"approved": False,
-				"original_code": original_code,
-				"refactored_code": refactored_code,
-				"chunks": chunk_metadata,
-			}
-			with open(PATCH_DIR / f"{patch_id}.json", "w", encoding="utf-8") as f:
-				json.dump(patch_info, f, indent=2)
+            patches_created += 1
 
-			patches_created += 1
+        # 9. Clean up temp file
+        try:
+            os.remove(temp_path)
+        except:
+            pass
 
-		os.remove(temp_path)
-
-	return patches_created
+    return patches_created
 
 if __name__ == "__main__":
 	count = run_self_patch()

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import shutil
 import datetime
+from agent.tools.dependency_graph import DependencyGraph
 
 PATCH_DIR = Path("memory/patch_notes")
 REWARD_LOG = Path("memory/reward_log.json")
@@ -87,6 +88,15 @@ def print_pending_patch_summaries():
 		print(f"  ↪ File: {patch['target_file']}")
 		print(f"  ↪ Score: {patch['refactor_score']}/10")
 		print(f"  ↪ Summary: {patch['description']}")
+		# Show impact
+		target_file = patch['target_file']
+		graph = DependencyGraph()
+		graph.build()
+		dependents = graph.get_dependents(target_file)
+		if dependents:
+			print(f"  ⚠️  Impacts: {len(dependents)} dependent file(s)")
+		else:
+			print(f"  ✅ Safe: No other files depend on this")
 		print("")
 
 if __name__ == "__main__":

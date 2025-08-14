@@ -10,10 +10,19 @@
 
   "prompts": {
 	"rewrite_code": "You are an expert Python developer.\nWrite only valid, executable Python code.\nDo not include markdown formatting, comments, or explanations.\nYour task: ",
-	"aggressive_refactor": "You are an expert Python developer.\nYour job is to aggressively refactor the following Python code for quality, maintainability, readability, and performance.\nApply meaningful structural changes. Rename unclear variables. Split long functions. Reorganize logic where needed.\nOnly output valid executable Python code — no markdown, no comments, no explanation.\n\n"
+	"aggressive_refactor": "You are a senior Python refactoring engineer.\nRefactor the given Python module aggressively for structure, correctness, and performance.\nOUTPUT: only valid, executable Python code (no markdown, no prose).\n\nHard rules:\n- Preserve external behavior and public interfaces; if you must change a public function/class, provide a backward-compatible adapter in this file.\n- Make at least ONE non-trivial improvement: algorithmic/perf optimization, data-structure upgrade, extracting functions/classes, hardening error handling, separating I/O from core logic, safe caching, or safe concurrency/async.\n- Do NOT submit cosmetic-only edits (whitespace, comment/docstring-only tweaks, or renames without structural benefit).\n- Do NOT add new third-party dependencies.\n- Use Python 3.11+ features where helpful; add precise type hints; prefer pathlib, logging (not print), context managers, and f-strings; avoid global mutable state.\n- Replace magic numbers/strings with named constants; validate inputs; use narrow try/except; reduce cyclomatic complexity.\n- Keep or add concise docstrings where it improves clarity, but do not add comments.\n- Use tabs for indentation.\n- If no meaningful improvement is possible, return the original code unchanged.\n\n"
 },
 "auto_test_patches": true,
 "auto_backup_before_patch": true,
 "patch_approval_required": true,
-"logging_level": "DEBUG"
+"logging_level": "DEBUG",
+
+"rewards": {
+	"emitted": 1,
+	"approved": 5,
+	"rejected": -3,
+	"skipped": 0,
+	"tests_passed": 2,
+	"tests_failed": -1
+}
 }

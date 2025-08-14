@@ -25,10 +25,7 @@
       "run.txt": "file"
     },
     "patch_notes": {
-      "PATCH_2025-07-31_10-59-49_auto_test.json": "file",
-      "PATCH_2025-07-31_11-00-02_background_setup.json": "file",
-      "PATCH_2025-07-31_11-00-11_backup.json": "file",
-      "PATCH_2025-07-31_11-00-52_capabilities_registry.json": "file",
+      "PATCH_2025-08-12_10-09-08_auto_test.json": "file",
       "skipped_patches.log": "file"
     }
   },
@@ -37,11 +34,8 @@
     "auto_test.py": "file",
     "auto_test.py.bak": "file",
     "background_setup.py": "file",
-    "background_setup.py.bak": "file",
     "backup.py": "file",
-    "backup.py.bak": "file",
     "capabilities_registry.py": "file",
-    "capabilities_registry.py.bak": "file",
     "code_chunker.py": "file",
     "dependency_graph.py": "file",
     "evaluate_patch.py": "file",
@@ -69,6 +63,7 @@
   "__pycache__": {
     "core.cpython-310.pyc": "file",
     "gui.cpython-310.pyc": "file",
+    "planner.cpython-310.pyc": "file",
     "__init__.cpython-310.pyc": "file"
   }
 }

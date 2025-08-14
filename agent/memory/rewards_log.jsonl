@@ -1,0 +1,8 @@
+{"when": "2025-08-12T12:11:10.385098", "action": "approved", "patch_id": "PATCH_2025-08-12_10-09-08_auto_test", "file": "agent\\tools\\auto_test.py", "score": 8.0}
+{"when": "2025-08-12T12:15:23.633519", "action": "skipped", "reason": "empty_or_invalid_code", "file": "run.py"}
+{"when": "2025-08-12T12:18:24.927364", "action": "skipped", "reason": "low_score", "score": 1.0, "file": "agent\\gui.py"}
+{"when": "2025-08-12T12:20:01.026052", "action": "skipped", "reason": "low_score", "score": 1.0, "file": "agent\\tools\\agent_tools.py"}
+{"when": "2025-08-12T12:20:12.961165", "action": "skipped", "reason": "low_score", "score": 1.0, "file": "agent\\tools\\auto_test.py"}
+{"when": "2025-08-12T12:20:27.369107", "action": "skipped", "reason": "low_score", "score": 1.0, "file": "agent\\tools\\background_setup.py"}
+{"when": "2025-08-12T12:20:34.701338", "action": "skipped", "reason": "low_score", "score": 1.0, "file": "agent\\tools\\backup.py"}
+{"when": "2025-08-12T12:21:12.547139", "action": "skipped", "reason": "ast_equivalent_or_cosmetic", "file": "agent\\tools\\capabilities_registry.py"}

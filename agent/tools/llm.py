@@ -11,11 +11,10 @@ from datetime import datetime
 from pathlib import Path
 
 # Path to config
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "memory", "config.json")
-CONFIG_PATH = os.path.abspath(CONFIG_PATH)
-root_registry_data = os.path.join(BASE_DIR, "memory", "root_registry.json")
-capabilities_data = os.path.join(BASE_DIR, "memory", "capabilities.json")
+MEMORY_DIR = Path(__file__).resolve().parents[1] / "memory"
+CONFIG_PATH = str(MEMORY_DIR / "config.json")
+root_registry_data = str(MEMORY_DIR / "root_registry.json")
+capabilities_data = str(MEMORY_DIR / "capabilities.json")
 
 
 def load_config():
@@ -256,14 +255,11 @@ def call_chat_llm(prompt: str) -> str:
 	Calls the chat LLM (e.g., Mistral) with the system prompt and user prompt.
 	"""
 	try:
-		with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-			chat_model = config["llm"]["chat_model"]
+		config = load_config()
+		chat_model = config["llm"]["chat_model"]
 	except Exception as e:
 		print(f"[ERROR] Failed to load config: {e}")
 		return "[ERROR] Could not load chat model configuration."
-
-	config = load_config()
-	chat_model = config["llm"]["chat_model"]
 	identity_prompt = config.get("chat", {}).get("system_prompt", "")
 	context_prompt = get_saias_context()
 	system_prompt = f"{identity_prompt}\n\n{context_prompt}"

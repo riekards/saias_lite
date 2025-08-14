@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from agent.tools.llm import safe_code_llm, score_code_patch
 from agent.tools.dependency_graph import DependencyGraph
 
+ROOT_PATH = Path(__file__).resolve().parents[1]
+
 @dataclass
 class CodeChunk:
 	"""Represents a logical code chunk with context"""

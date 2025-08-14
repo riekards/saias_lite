@@ -14,7 +14,7 @@ from pystray import Icon as SysTrayIcon
 import keyboard
 from agent.tools.background_setup import ensure_startup_task
 from agent.tools.llm import call_chat_llm
-from agent.tools.intent_router import route_intent  # Updated router
+from agent.tools.intent_router import route as route_intent
 from agent.tools.evaluate_patch import (
     list_pending_patches,
     apply_patch_by_id,
@@ -149,7 +149,8 @@ def launch_gui():
     window = AssistantGUI()
 
     # Setup system tray
-    tray_icon = QSystemTrayIcon(QIcon("saias.ico"))
+    icon_path = os.path.join(os.path.dirname(__file__), "saias.ico")
+    tray_icon = QSystemTrayIcon(QIcon(icon_path))
     tray_icon.setToolTip("SAIAS - Running in background")
 
     menu = QMenu()

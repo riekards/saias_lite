@@ -1,8 +1,8 @@
-# agent/tools/capabilities_registry.py
 import json
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+# Align with other modules that use agent/memory
+ROOT_DIR = Path(__file__).resolve().parents[1]  # points to 'agent'
 CAPABILITIES_PATH = ROOT_DIR / "memory" / "capabilities.json"
 
 def load_capabilities():

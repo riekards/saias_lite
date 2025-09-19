@@ -181,7 +181,7 @@ def run_self_patch():
 	debug_dump_dir = ROOT_DIR / "memory" / "debug_code_dump"
 	debug_dump_dir.mkdir(parents=True, exist_ok=True)
 
-	# ✅ Single loop — no redundancy
+	# [OK] Single loop — no redundancy
 	for file_path in get_all_python_files():
 		file_path = Path(file_path)  # Ensure it's a Path object
 
@@ -308,4 +308,4 @@ def run_self_patch():
 
 if __name__ == "__main__":
 	count = run_self_patch()
-	print(f"✅ {count} patch(es) generated.")
+	print(f"[OK] {count} patch(es) generated.")

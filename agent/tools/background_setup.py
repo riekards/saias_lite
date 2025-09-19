@@ -4,11 +4,10 @@ import sys
 from pathlib import Path
 
 def ensure_startup_task():
-	# Windows: launch via pythonw.exe to avoid a console, target absolute run.py
 	task_name = "SAIAS-Agent"
 	pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
 	run_py = str(Path(__file__).resolve().parents[2] / "run.py")
-	command = f'schtasks /Create /F /SC ONLOGON /TN "{task_name}" /TR "\\"{pythonw}\\" \\"{run_py}\\""'
+	command = f'schtasks /Create /F /SC ONLOGON /TN "{task_name}" /TR "{pythonw} \"{run_py}\""'
 	try:
 		subprocess.run(command, shell=True, check=True)
 	except Exception as e:

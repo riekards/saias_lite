@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QTimer
-from pystray import Icon as SysTrayIcon
 import keyboard
 from agent.tools.background_setup import ensure_startup_task
 from agent.tools.llm import call_chat_llm
@@ -20,6 +19,9 @@ from agent.tools.evaluate_patch import (
     apply_patch_by_id,
     print_pending_patch_summaries
 )
+from agent.tools.chat_memory import append_chat
+from agent.tools.root_registry import update_registry
+from agent.tools.dependency_graph import DependencyGraph
 import io
 import contextlib
 
@@ -129,6 +131,12 @@ class AssistantGUI(QWidget):
         self.chat_display.append(f"<b>You:</b> {user_input}")
         self.input_field.clear()
 
+        # Persist user message
+        try:
+            append_chat("user", user_input)
+        except Exception:
+            pass
+
         # Route intent
         try:
             response = route_intent(user_input)
@@ -136,8 +144,12 @@ class AssistantGUI(QWidget):
             logging.error(f"Intent routing error: {e}")
             response = "❌ An error occurred while processing your request."
 
-        # Display response
+        # Display response and persist
         self.chat_display.append(f"<b>SAIAS:</b> {response}")
+        try:
+            append_chat("assistant", response)
+        except Exception:
+            pass
 
         # Auto-show patches if generated
         if "patch" in response.lower() and "pending" in response.lower():
@@ -203,6 +215,18 @@ def launch():
 
     if config.get("background", {}).get("startup_enabled", False):
         ensure_startup_task()
+
+    # Auto-update project registry and capability usage
+    try:
+        update_registry()
+    except Exception as e:
+        logging.warning(f"Failed to update root registry: {e}")
+    try:
+        graph = DependencyGraph()
+        graph.build()
+        graph.update_capability_usage()
+    except Exception as e:
+        logging.warning(f"Failed to update capability usage: {e}")
 
     if config.get("background", {}).get("enabled", True):
         t = threading.Thread(target=background_listener, daemon=True)
